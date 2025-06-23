@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Plus, Eye, Edit, Trash2, Clock, CheckCircle, XCircle, AlertTriangle } from "lucide-react";
 import ReportModal from "@/components/ReportModal";
+import ReportViewModal from "@/components/ReportViewModal";
 import { cn } from "@/lib/utils";
 
 interface ReportWithStudent extends DailyReport {
@@ -40,8 +41,8 @@ interface ReportWithStudent extends DailyReport {
 
 export default function Reports() {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [viewDialogOpen, setViewDialogOpen] = useState(false);
-  const [selectedReport, setSelectedReport] = useState<DailyReport | null>(null);
+  const [viewModalOpen, setViewModalOpen] = useState(false);
+  const [selectedReportId, setSelectedReportId] = useState<number | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [reportToDelete, setReportToDelete] = useState<number | null>(null);
 
@@ -136,8 +137,8 @@ export default function Reports() {
   };
 
   const handleViewReport = (report: DailyReport) => {
-    setSelectedReport(report);
-    setViewDialogOpen(true);
+    setSelectedReportId(report.id);
+    setViewModalOpen(true);
   };
 
   const handleDeleteReport = (reportId: number) => {
@@ -285,77 +286,12 @@ export default function Reports() {
         students={students}
       />
 
-      {/* View Report Dialog */}
-      <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
-        <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>수업 보고서 상세</DialogTitle>
-            <DialogDescription>
-              {selectedReport && studentMap[selectedReport.studentId] && (
-                <>
-                  {studentMap[selectedReport.studentId].name} • {' '}
-                  {new Date(selectedReport.classDate).toLocaleDateString('ko-KR')}
-                </>
-              )}
-            </DialogDescription>
-          </DialogHeader>
-          
-          {selectedReport && (
-            <div className="space-y-4">
-              <div>
-                <h4 className="font-medium text-slate-900 mb-2">수업 주제</h4>
-                <p className="text-slate-700 bg-slate-50 p-3 rounded-lg">
-                  {selectedReport.lessonTopics || "기록된 내용이 없습니다."}
-                </p>
-              </div>
-              
-              <div>
-                <h4 className="font-medium text-slate-900 mb-2">숙제 점수</h4>
-                <p className="text-slate-700">
-                  {selectedReport.homeworkScore ? `${selectedReport.homeworkScore}점` : "점수 없음"}
-                </p>
-              </div>
-              
-              <div>
-                <h4 className="font-medium text-slate-900 mb-2">수업 중 관찰사항</h4>
-                <p className="text-slate-700 bg-slate-50 p-3 rounded-lg">
-                  {selectedReport.studentNotes || "기록된 내용이 없습니다."}
-                </p>
-              </div>
-              
-              <div>
-                <h4 className="font-medium text-slate-900 mb-2">다음 과제</h4>
-                <p className="text-slate-700 bg-slate-50 p-3 rounded-lg">
-                  {selectedReport.nextAssignment || "과제가 없습니다."}
-                </p>
-              </div>
-              
-              {selectedReport.aiReport && (
-                <div>
-                  <h4 className="font-medium text-slate-900 mb-2">AI 생성 보고서</h4>
-                  <div className="text-slate-700 bg-blue-50 p-4 rounded-lg border border-blue-200">
-                    <pre className="whitespace-pre-wrap font-sans">
-                      {selectedReport.aiReport}
-                    </pre>
-                  </div>
-                </div>
-              )}
-              
-              <div className="flex items-center justify-between pt-4 border-t border-slate-200">
-                <div>
-                  <span className="text-sm text-slate-500">AI 처리 상태: </span>
-                  {getStatusBadge(selectedReport.aiProcessingStatus || "pending")}
-                </div>
-                {selectedReport.aiProcessedAt && (
-                  <div className="text-sm text-slate-500">
-                    처리 완료: {new Date(selectedReport.aiProcessedAt).toLocaleString('ko-KR')}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      {/* View Report Modal */}
+      <ReportViewModal
+        open={viewModalOpen}
+        onClose={() => setViewModalOpen(false)}
+        reportId={selectedReportId}
+      />
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

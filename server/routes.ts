@@ -6,11 +6,90 @@ import { insertStudentSchema, insertDailyReportSchema } from "@shared/schema";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Mock authentication middleware
+  // Session-based authentication
   app.use("/api", (req, res, next) => {
-    // Simple mock user for development
-    (req as any).user = { id: 1, username: "김선생님" };
+    // Skip auth check for login/register routes
+    if (req.path === "/auth/login" || req.path === "/auth/register") {
+      return next();
+    }
+    
+    // Check if user is authenticated
+    if (!(req as any).session?.user) {
+      return res.status(401).json({ error: "인증이 필요합니다." });
+    }
+    
+    (req as any).user = (req as any).session.user;
     next();
+  });
+
+  // Authentication routes
+  app.post("/api/auth/login", async (req, res) => {
+    try {
+      const { username, password } = req.body;
+      
+      if (!username || !password) {
+        return res.status(400).json({ error: "사용자명과 비밀번호를 입력하세요." });
+      }
+
+      const user = await storage.getUserByUsername(username);
+      if (!user || user.password !== password) {
+        return res.status(401).json({ error: "사용자명 또는 비밀번호가 올바르지 않습니다." });
+      }
+
+      // Store user in session
+      (req as any).session.user = { 
+        id: user.id, 
+        username: user.username,
+        email: user.email 
+      };
+
+      res.json({ 
+        user: { 
+          id: user.id, 
+          username: user.username, 
+          email: user.email 
+        } 
+      });
+    } catch (error) {
+      res.status(500).json({ error: "로그인 처리 중 오류가 발생했습니다." });
+    }
+  });
+
+  app.post("/api/auth/register", async (req, res) => {
+    try {
+      const { username, email, password } = req.body;
+      
+      if (!username || !email || !password) {
+        return res.status(400).json({ error: "모든 필드를 입력하세요." });
+      }
+
+      // Check if user already exists
+      const existingUser = await storage.getUserByUsername(username);
+      if (existingUser) {
+        return res.status(409).json({ error: "이미 존재하는 사용자명입니다." });
+      }
+
+      const user = await storage.createUser({ username, email, password });
+      res.json({ 
+        user: { 
+          id: user.id, 
+          username: user.username, 
+          email: user.email 
+        } 
+      });
+    } catch (error) {
+      res.status(500).json({ error: "회원가입 처리 중 오류가 발생했습니다." });
+    }
+  });
+
+  app.post("/api/auth/logout", (req, res) => {
+    (req as any).session.destroy(() => {
+      res.json({ message: "로그아웃되었습니다." });
+    });
+  });
+
+  app.get("/api/auth/user", (req, res) => {
+    res.json((req as any).user);
   });
 
   // Student management routes
@@ -52,6 +131,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(student);
     } catch (error) {
       res.status(500).json({ error: "학생 정보 수정에 실패했습니다." });
+    }
+  });
+
+  app.get("/api/students/:id", async (req, res) => {
+    try {
+      const studentId = parseInt(req.params.id);
+      const student = await storage.getStudent(studentId);
+      
+      if (!student) {
+        return res.status(404).json({ error: "학생을 찾을 수 없습니다." });
+      }
+      
+      res.json(student);
+    } catch (error) {
+      res.status(500).json({ error: "학생 정보를 가져오는데 실패했습니다." });
     }
   });
 
@@ -101,6 +195,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(report);
     } catch (error) {
       res.status(500).json({ error: "보고서 조회에 실패했습니다." });
+    }
+  });
+
+  app.get("/api/reports/:id", async (req, res) => {
+    try {
+      const reportId = parseInt(req.params.id);
+      const report = await storage.getDailyReport(reportId);
+      
+      if (!report) {
+        return res.status(404).json({ error: "보고서를 찾을 수 없습니다." });
+      }
+      
+      res.json(report);
+    } catch (error) {
+      res.status(500).json({ error: "보고서를 가져오는데 실패했습니다." });
     }
   });
 

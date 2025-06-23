@@ -1,8 +1,9 @@
 import { Student } from "@shared/schema";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2, Phone, User, BookOpen, Calendar } from "lucide-react";
+import { Edit, Trash2, Phone, User, BookOpen, Calendar, Eye } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Link } from "wouter";
 
 interface StudentCardProps {
   student: Student;
@@ -106,13 +107,29 @@ export default function StudentCard({ student, onEdit, onDelete, progress = 0 }:
           </div>
         </div>
 
-        <Button 
-          variant="secondary" 
-          className="w-full mt-4"
-          onClick={() => {/* Navigate to student detail */}}
-        >
-          상세 정보 보기
-        </Button>
+        <div className="flex space-x-2 mt-4">
+          <Link href={`/students/${student.id}`} className="flex-1">
+            <Button variant="secondary" className="w-full">
+              <Eye className="w-4 h-4 mr-2" />
+              상세보기
+            </Button>
+          </Link>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onEdit(student)}
+          >
+            <Edit className="w-4 h-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onDelete(student.id)}
+            className="text-red-600 hover:text-red-700"
+          >
+            <Trash2 className="w-4 h-4" />
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );

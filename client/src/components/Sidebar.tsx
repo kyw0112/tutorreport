@@ -1,5 +1,7 @@
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/useAuth";
+import { Button } from "@/components/ui/button";
 import { 
   BarChart3, 
   Users, 
@@ -26,6 +28,7 @@ const navigation = [
 
 export default function Sidebar({ open, onClose }: SidebarProps) {
   const [location] = useLocation();
+  const { user, logout, isLoggingOut } = useAuth();
 
   return (
     <aside 
@@ -83,12 +86,18 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
               <User className="text-slate-600 w-5 h-5" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-slate-900">김선생님</p>
-              <p className="text-xs text-slate-500">teacher@example.com</p>
+              <p className="text-sm font-medium text-slate-900">{user?.username || "사용자"}</p>
+              <p className="text-xs text-slate-500">{user?.email || "이메일 없음"}</p>
             </div>
-            <button className="text-slate-400 hover:text-slate-600">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={logout}
+              disabled={isLoggingOut}
+              className="text-slate-400 hover:text-slate-600 p-2"
+            >
               <LogOut className="w-4 h-4" />
-            </button>
+            </Button>
           </div>
         </div>
       </div>

@@ -20,6 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import { TrendingUp, PieChart, BarChart3, Users } from "lucide-react";
 import { Student, DailyReport } from "@shared/schema";
 import { cn, getInitials, getProgressColor, calculateProgress, formatDate } from "@/lib/utils";
+import { Link } from "wouter";
 
 export default function Analytics() {
   const { data: students = [], isLoading: studentsLoading } = useQuery<Student[]>({
@@ -303,17 +304,19 @@ export default function Analytics() {
                   {studentAnalytics.map(({ student, averageScore, attendanceRate, homeworkCompletion, progressStatus, recommendation }) => (
                     <TableRow key={student.id} className="hover:bg-slate-50">
                       <TableCell>
-                        <div className="flex items-center space-x-3">
-                          <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                            <span className="text-sm font-medium text-blue-600">
-                              {getInitials(student.name)}
-                            </span>
+                        <Link href={`/students/${student.id}`}>
+                          <div className="flex items-center space-x-3 hover:bg-slate-50 rounded p-2 -m-2 cursor-pointer">
+                            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                              <span className="text-sm font-medium text-blue-600">
+                                {getInitials(student.name)}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="font-medium text-slate-900 hover:text-blue-600">{student.name}</span>
+                              <div className="text-xs text-slate-500">{student.grade} • {student.subject}</div>
+                            </div>
                           </div>
-                          <div>
-                            <span className="font-medium text-slate-900">{student.name}</span>
-                            <div className="text-xs text-slate-500">{student.grade} • {student.subject}</div>
-                          </div>
-                        </div>
+                        </Link>
                       </TableCell>
                       <TableCell className="font-medium text-slate-900">{averageScore}점</TableCell>
                       <TableCell>
