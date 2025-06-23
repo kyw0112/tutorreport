@@ -1,0 +1,186 @@
+# Tutor's Insight - 프리미엄 과외 관리 SaaS 플랫폼
+
+## 프로젝트 개요
+한국어 과외 선생님을 위한 AI 기반 학습 보고서 생성 및 학생 관리 시스템입니다. TypeScript 풀스택으로 구현되었으며, OpenAI API를 활용한 배치 처리 시스템으로 학부모용 보고서를 자동 생성합니다.
+
+## 핵심 기능
+1. **학생 관리**: 학생 프로필, 연락처, 과목 정보 관리
+2. **수업 보고서 작성**: 일일 수업 내용, 숙제 점수, 다음 과제 기록
+3. **AI 보고서 생성**: OpenAI API로 학부모용 전문적인 한국어 보고서 자동 생성
+4. **배치 처리 시스템**: 실시간이 아닌 큐 기반 백그라운드 AI 처리
+5. **대시보드 분석**: 학생 통계, 주간 차트, 진도 추적
+
+## 기술 스택
+
+### 프론트엔드
+- **React 18** + TypeScript
+- **Wouter** (라우팅)
+- **TanStack Query** (서버 상태 관리)
+- **Shadcn/ui** + Radix UI (UI 컴포넌트)
+- **Tailwind CSS** (스타일링)
+- **React Hook Form** + Zod (폼 관리 및 검증)
+- **Vite** (개발 서버 및 빌드)
+
+### 백엔드
+- **Node.js** + Express.js + TypeScript
+- **PostgreSQL** (Neon Database - 서버리스)
+- **Drizzle ORM** (데이터베이스 ORM)
+- **Express Session** (세션 관리)
+- **OpenAI API** (AI 보고서 생성)
+
+## 데이터베이스 스키마
+
+```sql
+-- Users: 기본 사용자 인증
+users (
+  id: serial PRIMARY KEY,
+  username: varchar(255) UNIQUE NOT NULL,
+  email: varchar(255),
+  password: varchar(255),
+  created_at: timestamp DEFAULT now()
+)
+
+-- Students: 학생 프로필
+students (
+  id: serial PRIMARY KEY,
+  user_id: integer REFERENCES users(id),
+  name: varchar(255) NOT NULL,
+  grade: varchar(50),
+  subject: varchar(100),
+  phone: varchar(20),
+  parent_phone: varchar(20),
+  created_at: timestamp DEFAULT now()
+)
+
+-- Daily Reports: 수업 보고서
+daily_reports (
+  id: serial PRIMARY KEY,
+  student_id: integer REFERENCES students(id),
+  user_id: integer REFERENCES users(id),
+  class_date: date NOT NULL,
+  lesson_topics: text,
+  homework_score: integer,
+  student_notes: text,
+  next_assignment: text,
+  ai_report: text, -- AI 생성 보고서
+  ai_processing_status: varchar(20) DEFAULT 'pending', -- pending/processing/completed/failed
+  ai_processed_at: timestamp,
+  created_at: timestamp DEFAULT now()
+)
+
+-- Batch Queue: AI 처리 큐
+batch_queue (
+  id: serial PRIMARY KEY,
+  task_type: varchar(50) NOT NULL, -- 'report_generation', 'student_analysis'
+  task_data: jsonb NOT NULL,
+  priority: integer DEFAULT 2, -- 1=high, 2=medium, 3=low
+  status: varchar(20) DEFAULT 'pending', -- pending/processing/completed/failed
+  attempts: integer DEFAULT 0,
+  max_attempts: integer DEFAULT 3,
+  error_message: text,
+  created_at: timestamp DEFAULT now(),
+  processed_at: timestamp
+)
+```
+
+## 배치 처리 시스템 아키텍처
+
+### 큐 시스템
+- **자동 스케줄러**: 30초마다 배치 큐 처리
+- **우선순위**: 보고서 생성(높음), 학생 분석(중간)
+- **재시도 로직**: 실패한 작업 최대 3회 자동 재시도
+- **상태 추적**: pending → processing → completed/failed
+
+### AI 처리 흐름
+1. 수업 보고서 작성 → 즉시 데이터베이스 저장
+2. 배치 큐에 AI 처리 작업 추가
+3. 백그라운드 스케줄러가 큐에서 작업 처리
+4. OpenAI API 호출하여 한국어 보고서 생성
+5. 생성된 보고서를 데이터베이스에 업데이트
+
+## API 엔드포인트
+
+### 학생 관리
+- `GET /api/students` - 학생 목록 조회
+- `POST /api/students` - 새 학생 등록
+- `PUT /api/students/:id` - 학생 정보 수정
+- `DELETE /api/students/:id` - 학생 삭제
+
+### 보고서 관리
+- `GET /api/reports` - 보고서 목록 조회
+- `POST /api/reports` - 새 보고서 작성
+- `GET /api/reports/:id` - 특정 보고서 조회
+
+### 배치 시스템
+- `GET /api/batch/status` - 배치 큐 상태 조회
+- `POST /api/batch/process` - 수동 배치 처리 실행
+
+### 분석 데이터
+- `GET /api/analytics/stats` - 대시보드 통계 데이터
+
+## 주요 컴포넌트 구조
+
+### 프론트엔드 페이지
+- `Dashboard` - 메인 대시보드 (통계, 차트, 배치 상태)
+- `StudentDetail` - 학생 상세 정보 및 보고서 목록
+
+### 주요 컴포넌트
+- `BatchStatus` - 실시간 배치 처리 상태 모니터링
+- `StudentCard` - 학생 정보 카드
+- `ReportModal` - 보고서 작성 모달
+- `StudentModal` - 학생 등록/수정 모달
+- `WeeklyChart`, `ProgressChart` - 데이터 시각화
+
+### 백엔드 서비스
+- `BatchQueueService` - 배치 큐 관리
+- `BatchScheduler` - 자동 스케줄러
+- `OpenAI Service` - AI 보고서 생성
+- `DatabaseStorage` - 데이터 CRUD 인터페이스
+
+## 환경 변수
+```bash
+DATABASE_URL=postgresql://... # Neon Database 연결 문자열
+OPENAI_API_KEY=sk-... # OpenAI API 키 (필수)
+NODE_ENV=development|production
+```
+
+## 실행 방법
+
+### 개발 환경
+```bash
+npm run dev  # 개발 서버 시작 (프론트엔드 + 백엔드)
+```
+
+### 데이터베이스 마이그레이션
+```bash
+npm run db:push  # Drizzle 스키마를 데이터베이스에 적용
+```
+
+### 빌드 및 배포
+```bash
+npm run build  # 프로덕션 빌드
+npm run start  # 프로덕션 서버 시작
+```
+
+## 중요한 설계 결정사항
+
+1. **배치 처리 선택**: 사용자가 실시간 AI 처리보다 배치 처리를 명시적으로 요청
+2. **TypeScript 풀스택**: Django 요청했으나 Replit에서 지원하지 않아 Node.js로 구현
+3. **PostgreSQL 사용**: 복잡한 관계형 데이터와 배치 큐 관리를 위해 선택
+4. **Mock 인증**: 프로토타입을 위한 간단한 인증 시스템 (프로덕션에서는 개선 필요)
+
+## 현재 상태
+- ✅ 기본 CRUD 기능 완성
+- ✅ 배치 처리 시스템 구현
+- ✅ UI/UX 완성
+- ⚠️ OpenAI API 키 설정 필요 (실제 AI 기능 동작을 위해)
+- ⚠️ 실제 인증 시스템 구현 필요 (프로덕션용)
+
+## 확장 가능성
+- 다중 사용자 지원 강화
+- 모바일 앱 개발
+- 결제 시스템 통합
+- 학부모 포털 추가
+- 화상 수업 통합
+
+이 명세서를 통해 다른 개발자나 AI가 프로젝트를 이해하고 계속 개발할 수 있습니다.
